@@ -299,12 +299,28 @@ export async function onRequestPost(context: any): Promise<Response> {
       }));
     }
 
-    const conversations = firstPass.map(entry => entry.normalized);
+    const normalized = firstPass.map(entry => entry.normalized);
+
+    // Dedupe by id — the user_conversation_index can carry multiple
+    // entries for the same conversationId (one per appended user message,
+    // since agents/chat writes a user-indexed copy on every turn). The
+    // runtime's listConversations does not collapse them, so the sidebar
+    // would otherwise render N rows for the same thread. Keep the FIRST
+    // occurrence so the runtime's intended ordering (driven by `order=`
+    // and pagination cursors) is preserved.
+    const seenIds = new Set<string>();
+    const conversations: NormalizedConversation[] = [];
+    for (const conv of normalized) {
+      if (seenIds.has(conv.id)) continue;
+      seenIds.add(conv.id);
+      conversations.push(conv);
+    }
+    const duplicatesDropped = normalized.length - conversations.length;
 
     const nextCursor = pickCursor(result, 'nextCursor', 'next_cursor');
     const previousCursor = pickCursor(result, 'previousCursor', 'previous_cursor', 'prevCursor', 'prev_cursor');
 
-    logger.log(`[conversations] count=${conversations.length}, hasNext=${Boolean(nextCursor)}, lookedUpTitles=${needsFirstMessage.length}`);
+    logger.log(`[conversations] count=${conversations.length}, hasNext=${Boolean(nextCursor)}, lookedUpTitles=${needsFirstMessage.length}, duplicatesDropped=${duplicatesDropped}`);
     logger.log(`[conversations] end: ${new Date().toISOString()}, total: ${Date.now() - startTime}ms`);
 
     return jsonResponse({
