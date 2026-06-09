@@ -1,7 +1,5 @@
 # OpenAI Agents Starter
 
-**Language:** English | [简体中文](./README_zh-CN.md)
-
 A full-stack EdgeOne Makers Agent template — streaming chat backed by the OpenAI Agents SDK (TypeScript), with custom tools and `context.store`-backed conversation memory.
 
 **Framework:** OpenAI Agents SDK · **Category:** Quick Start <!-- TODO: confirm --> · **Language:** TypeScript

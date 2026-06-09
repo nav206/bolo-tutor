@@ -1,7 +1,5 @@
 # OpenAI Agents Starter
 
-**语言：** [English](./README.md) | 简体中文
-
 跑在 EdgeOne Makers 上的全栈 Agent 模板：基于 OpenAI Agents SDK（TypeScript）的流式聊天，包含自定义工具与基于 `context.store` 的会话记忆。
 
 **Framework：** OpenAI Agents SDK · **Category：** Quick Start <!-- TODO: confirm --> · **Language：** TypeScript
