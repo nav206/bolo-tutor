@@ -16,29 +16,13 @@
  */
 
 import OpenAI from 'openai';
-import { run, Agent, OpenAIChatCompletionsModel, setTracingDisabled, type Session } from '@openai/agents';
+import { run, Agent, OpenAIChatCompletionsModel, type Session } from '@openai/agents';
 import { createLogger } from '../_logger';
 import { createTools } from '../_tools';
 import { sseResponse } from '../_sse';
 
 const logger = createLogger('chat');
 const DEFAULT_MODEL = '@makers/deepseek-v4-flash';
-
-// Disable the SDK's built-in tracing exporter at module load.
-//
-// By default, @openai/agents posts every run()'s span tree to
-// https://api.openai.com/v1/traces/ingest via its BackendSpanExporter,
-// with a 5-second connect timeout and several retries. When this template
-// is deployed on EdgeOne where api.openai.com is not reachable from the
-// runtime container, that exporter blocks each chat request behind ~22+
-// seconds of connect timeouts.
-//
-// The template doesn't use OpenAI's hosted tracing dashboard —
-// observability already runs through the EdgeOne platform's own tracer.
-// So turning the exporter off is pure latency win, no information loss.
-// Users who DO want OpenAI tracing can delete this call (or set
-// OPENAI_AGENTS_DISABLE_TRACING=false in their env).
-setTracingDisabled(true);
 
 export async function onRequest(context: any) {
   const body = context.request.body ?? {};
