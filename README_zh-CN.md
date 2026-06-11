@@ -4,7 +4,7 @@
 
 **Framework：** OpenAI Agents SDK · **Category：** Quick Start <!-- TODO: confirm --> · **Language：** TypeScript
 
-[![Deploy to EdgeOne Makers](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/makers/new?template=openai-agents-starter-node&from=within&fromAgent=1&agentLang=typescript)
+[![Deploy to EdgeOne Makers](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://console.cloud.tencent.com/edgeone/pages/new?template=openai-agents-starter-node)
 
 <!-- ![preview](./assets/preview.png)  TODO: confirm -->
 
@@ -67,7 +67,7 @@ openAI-agent-starter/
 │   ├── api.ts                      # /chat、/stop、/history 接口封装
 │   └── components/                 # ChatWindow、ChatInput、CodeViewer、ToolIndicators 等
 ├── package.json                     # 含 @openai/agents
-├── edgeone.json                     # framework=openai-sdk
+├── edgeone.json                     # framework=openai-agents-sdk
 ├── vite.config.ts
 ├── tsconfig.json
 └── .gitignore

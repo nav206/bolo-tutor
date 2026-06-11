@@ -67,7 +67,7 @@ openAI-agent-starter/
 │   ├── api.ts                      # /chat, /stop, /history wrappers
 │   └── components/                 # ChatWindow, ChatInput, CodeViewer, ToolIndicators, ...
 ├── package.json                     # Includes @openai/agents
-├── edgeone.json                     # framework=openai-sdk
+├── edgeone.json                     # framework=openai-agents-sdk
 ├── vite.config.ts
 ├── tsconfig.json
 └── .gitignore
