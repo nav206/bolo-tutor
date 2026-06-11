@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useT } from '../i18n';
 
-const REPO_URL = 'https://github.com/TencentEdgeOne/openai-agent-starter-node';
+const REPO_URL = 'https://github.com/TencentEdgeOne/openai-agents-starter-node';
 
 /**
  * Floating GitHub badge anchored to the bottom-right viewport corner.
