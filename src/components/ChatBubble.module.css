@@ -136,6 +136,21 @@
   margin: 0.5em 0;
   color: var(--text-secondary);
 }
+.markdown :global(table) {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  font-size: 0.85em;
+}
+.markdown :global(th),
+.markdown :global(td) {
+  border: 1px solid var(--bg-border);
+  padding: 0.35em 0.6em;
+}
+.markdown :global(th) {
+  background: rgba(255, 255, 255, 0.04);
+  font-weight: 600;
+  text-align: left;
+}
 .markdown :global(hr) {
   border: none;
   border-top: 1px solid var(--bg-border);
