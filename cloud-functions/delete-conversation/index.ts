@@ -1,5 +1,5 @@
 /**
- * Delete-conversation handler — EdgeOne Pages Node Function
+ * Delete-conversation handler — EdgeOne Makers Node Function
  * =========================================================
  *
  * File path cloud-functions/delete-conversation/index.ts maps to
@@ -13,7 +13,7 @@
  * Requires `user_id` (or `userId`) so we don't accidentally delete a
  * conversation that doesn't belong to the requesting browser.
  *
- * Following the official EdgeOne Pages Node Functions docs:
+ * Following the official EdgeOne Makers Node Functions docs:
  *   - export `onRequestPost` for POST handlers
  *   - read JSON body via `await context.request.json()`
  *   - return a `Response` object

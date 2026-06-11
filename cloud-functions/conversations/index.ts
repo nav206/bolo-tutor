@@ -1,5 +1,5 @@
 /**
- * Conversations handler — EdgeOne Pages Node Function
+ * Conversations handler — EdgeOne Makers Node Function
  * ===================================================
  *
  * File path cloud-functions/conversations/index.ts maps to **POST /conversations**.
@@ -18,7 +18,7 @@
  * NOTE: The frontend MUST send `user_id` (or `userId`). Without a user namespace
  * we refuse to leak conversations across users and return 400.
  *
- * Following the official EdgeOne Pages Node Functions docs:
+ * Following the official EdgeOne Makers Node Functions docs:
  *   - export `onRequestPost` for POST handlers
  *   - read JSON body via `await context.request.json()`
  *   - return a `Response` object

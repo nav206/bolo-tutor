@@ -59,7 +59,7 @@ openAI-agent-starter/
 │   ├── _logger.ts                  # Logger utility (private)
 │   ├── _sse.ts                     # SSE helpers (private)
 │   └── _tools.ts                   # Agent tool definitions (private)
-├── cloud-functions/                 # Stateless EdgeOne Pages Node Functions
+├── cloud-functions/                 # Stateless EdgeOne Makers Node Functions
 │   ├── history/index.ts            # POST /history — load conversation messages
 │   └── _logger.ts                  # Logger utility
 ├── src/                             # React + Vite + TypeScript frontend

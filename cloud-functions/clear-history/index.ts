@@ -1,5 +1,5 @@
 /**
- * Clear-history handler — EdgeOne Pages Node Function
+ * Clear-history handler — EdgeOne Makers Node Function
  * ===================================================
  *
  * File path cloud-functions/clear-history/index.ts maps to **POST /clear-history**.
@@ -7,7 +7,7 @@
  * Clears all backend messages for the current conversation via
  * `context.agent.store.clearMessages({ conversationId })`.
  *
- * Following the official EdgeOne Pages Node Functions docs:
+ * Following the official EdgeOne Makers Node Functions docs:
  *   - export `onRequestPost` for POST handlers
  *   - read JSON body via `await context.request.json()`
  *   - return a `Response` object

@@ -59,7 +59,7 @@ openAI-agent-starter/
 │   ├── _logger.ts                  # 日志工具（私有）
 │   ├── _sse.ts                     # SSE 工具（私有）
 │   └── _tools.ts                   # Agent 工具定义（私有）
-├── cloud-functions/                 # 无状态的 EdgeOne Pages Node Functions
+├── cloud-functions/                 # 无状态的 EdgeOne Makers Node Functions
 │   ├── history/index.ts            # POST /history —— 拉取对话消息
 │   └── _logger.ts                  # 日志工具
 ├── src/                             # React + Vite + TypeScript 前端
