@@ -20,6 +20,8 @@ import type {
   TutorSummaryPayload,
 } from './types';
 
+const useLocalFallback = import.meta.env.VITE_USE_LOCAL_FALLBACK === 'true';
+
 export const API = {
   chat: '/chat',
   chatStop: '/stop',                        // Abort the active agent run
@@ -177,6 +179,11 @@ export function sendMessageStream(
           signal: ctrl.signal,
         });
       } catch {
+        if (!useLocalFallback) {
+          callbacks.onError(new Error('The EdgeOne chat backend is not reachable. Please connect the EdgeOne runtime to enable the live tutor.'));
+          return;
+        }
+
         const turn = fallbackReply(options?.profile);
         const chunks = turn.reply_target_language.split(/(\s+)/).filter(Boolean);
         let index = 0;
@@ -198,6 +205,11 @@ export function sendMessageStream(
       }
 
       if (!res.ok) {
+        if (!useLocalFallback) {
+          callbacks.onError(new Error(`The EdgeOne chat backend returned ${res.status}. Connect the EdgeOne runtime to enable the live tutor.`));
+          return;
+        }
+
         const turn = fallbackReply(options?.profile);
         const chunks = turn.reply_target_language.split(/(\s+)/).filter(Boolean);
         let index = 0;
@@ -334,12 +346,13 @@ export async function startSession(profile: { language: string; level: string; m
       body: JSON.stringify(profile),
     });
     if (!res.ok) {
-      if (res.status === 404) return createFallbackSession(profile);
+      if (res.status === 404 && useLocalFallback) return createFallbackSession(profile);
       throw new Error(`HTTP ${res.status}: ${await res.text().catch(() => '')}`);
     }
     return res.json() as Promise<{ sessionId: string; profile: { language: string; level: string; mode: string } }>;
   } catch {
-    return createFallbackSession(profile);
+    if (useLocalFallback) return createFallbackSession(profile);
+    throw new Error('The EdgeOne session backend is not reachable. Connect the EdgeOne runtime to enable the live tutor.');
   }
 }
 
@@ -350,12 +363,13 @@ export async function getSessionSummary(sessionId: string): Promise<TutorSummary
       headers: { 'Content-Type': 'application/json' },
     });
     if (!res.ok) {
-      if (res.status === 404) return readStoredSummary(sessionId);
+      if (res.status === 404 && useLocalFallback) return readStoredSummary(sessionId);
       throw new Error(`HTTP ${res.status}: ${await res.text().catch(() => '')}`);
     }
     return res.json() as Promise<TutorSummaryPayload>;
   } catch {
-    return readStoredSummary(sessionId);
+    if (useLocalFallback) return readStoredSummary(sessionId);
+    throw new Error('The EdgeOne session backend is not reachable. Connect the EdgeOne runtime to enable the live tutor.');
   }
 }
 

@@ -36,6 +36,8 @@ export function buildTutorInstructions(profile: TutorProfile): string {
     `- If mode is "Guided", stay inside one realistic scenario until the user wants to switch.`,
     '- If mode is "Free chat", follow whatever the user brings up.',
     '- If the user makes a grammar or vocabulary mistake, correct it briefly and keep the conversation moving.',
+    '- Use the previous turns in the conversation to build on what the user already said; do not repeat the same generic prompt every turn.',
+    '- Ask one short follow-up question or offer one useful correction so the exchange feels alive and adaptive.',
     '- Never fully switch to English unless the user explicitly asks for help or seems lost.',
     '- Always return a JSON object matching the schema exactly, with no extra prose before or after it.',
     '',
