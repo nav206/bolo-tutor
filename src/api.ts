@@ -16,6 +16,8 @@ import type {
   Message,
   ListConversationsParams,
   ListConversationsResponse,
+  TutorTurnPayload,
+  TutorSummaryPayload,
 } from './types';
 
 export const API = {
@@ -25,6 +27,8 @@ export const API = {
   clearHistory: '/clear-history',           // Clear messages in a conversation
   conversations: '/conversations',          // List conversations for a user
   deleteConversation: '/delete-conversation', // Permanently delete a conversation
+  startSession: '/session/start',
+  sessionSummary: '/session/summary',
 } as const;
 
 export interface RawSseEvent {
@@ -37,9 +41,61 @@ export interface RawSseEvent {
 export interface StreamCallbacks {
   onTextDelta: (delta: string) => void;
   onToolCalled: (toolName: string) => void;
+  onAssistantTurn: (turn: TutorTurnPayload) => void;
+  onProgressUpdate: (payload: { vocabCount: number; mistakeCount: number }) => void;
   onDone: () => void;
   onError: (err: Error) => void;
   onRawEvent?: (event: RawSseEvent) => void;
+}
+
+function readStoredSummary(sessionId: string): TutorSummaryPayload {
+  if (typeof window === 'undefined') return { vocab: [], mistakes: [] };
+  try {
+    const raw = window.localStorage.getItem(`bolo-session:${sessionId}:summary`);
+    if (!raw) return { vocab: [], mistakes: [] };
+    const parsed = JSON.parse(raw) as Partial<TutorSummaryPayload>;
+    return {
+      vocab: Array.isArray(parsed.vocab) ? parsed.vocab : [],
+      mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes : [],
+    };
+  } catch {
+    return { vocab: [], mistakes: [] };
+  }
+}
+
+function writeStoredSummary(sessionId: string, summary: TutorSummaryPayload) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(`bolo-session:${sessionId}:summary`, JSON.stringify(summary));
+  } catch {
+    // ignore storage errors in local demo mode
+  }
+}
+
+function createFallbackSession(profile: { language: string; level: string; mode: string }) {
+  const sessionId = `local-${Date.now()}`;
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.setItem(`bolo-session:${sessionId}:profile`, JSON.stringify(profile));
+      writeStoredSummary(sessionId, { vocab: [], mistakes: [] });
+    } catch {
+      // ignore storage errors in local demo mode
+    }
+  }
+  return { sessionId, profile };
+}
+
+function fallbackReply(profile?: { language: string; level: string; mode: string }) {
+  const language = profile?.language ?? 'your target language';
+  const level = profile?.level ?? 'Beginner';
+  const mode = profile?.mode ?? 'Guided';
+  return {
+    reply_target_language: `Nice work! This is a local demo reply for ${language} at the ${level} level in ${mode} mode. Try a short sentence and I will respond like a tutor.`,
+    transliteration: null,
+    translation_en: `This is a local demo response for ${language}.`,
+    correction: null,
+    new_vocab: [],
+  } as TutorTurnPayload;
 }
 
 /** Get conversation history for restoring the chat window after page refresh. */
@@ -89,7 +145,7 @@ export function sendMessageStream(
   message: string,
   callbacks: StreamCallbacks,
   conversationId?: string,
-  options?: { userId?: string; userMsgId?: string; botMsgId?: string },
+  options?: { userId?: string; userMsgId?: string; botMsgId?: string; sessionId?: string; profile?: { language: string; level: string; mode: string } },
 ): AbortController {
   const ctrl = new AbortController();
 
@@ -102,23 +158,63 @@ export function sendMessageStream(
         headers['makers-conversation-id'] = conversationId;
       }
 
-      const res = await fetch(API.chat, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          message,
-          // userId is camelCase here for parity with claude-agent-starter's
-          // chat handler convention. The backend reads body.userId ?? body.user_id
-          // to be tolerant of both.
-          userId: options?.userId,
-          userMsgId: options?.userMsgId,
-          botMsgId: options?.botMsgId,
-        }),
-        signal: ctrl.signal,
-      });
+      let res: Response;
+      try {
+        res = await fetch(API.chat, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            message,
+            // userId is camelCase here for parity with claude-agent-starter's
+            // chat handler convention. The backend reads body.userId ?? body.user_id
+            // to be tolerant of both.
+            userId: options?.userId,
+            userMsgId: options?.userMsgId,
+            botMsgId: options?.botMsgId,
+            sessionId: options?.sessionId,
+            profile: options?.profile,
+          }),
+          signal: ctrl.signal,
+        });
+      } catch {
+        const turn = fallbackReply(options?.profile);
+        const chunks = turn.reply_target_language.split(/(\s+)/).filter(Boolean);
+        let index = 0;
+        const step = () => {
+          if (ctrl.signal.aborted) return;
+          if (index < chunks.length) {
+            const delta = chunks[index] + (index < chunks.length - 1 ? ' ' : '');
+            callbacks.onTextDelta(delta);
+            index += 1;
+            window.setTimeout(step, 25);
+            return;
+          }
+          callbacks.onAssistantTurn(turn);
+          callbacks.onProgressUpdate({ vocabCount: 0, mistakeCount: 0 });
+          callbacks.onDone();
+        };
+        step();
+        return;
+      }
 
       if (!res.ok) {
-        callbacks.onError(new Error(`HTTP ${res.status}: ${await res.text().catch(() => '')}`));
+        const turn = fallbackReply(options?.profile);
+        const chunks = turn.reply_target_language.split(/(\s+)/).filter(Boolean);
+        let index = 0;
+        const step = () => {
+          if (ctrl.signal.aborted) return;
+          if (index < chunks.length) {
+            const delta = chunks[index] + (index < chunks.length - 1 ? ' ' : '');
+            callbacks.onTextDelta(delta);
+            index += 1;
+            window.setTimeout(step, 25);
+            return;
+          }
+          callbacks.onAssistantTurn(turn);
+          callbacks.onProgressUpdate({ vocabCount: 0, mistakeCount: 0 });
+          callbacks.onDone();
+        };
+        step();
         return;
       }
 
@@ -197,6 +293,12 @@ function dispatchSseChunk(part: string, cb: StreamCallbacks, markDone: () => voi
       case 'tool_called':
         cb.onToolCalled(parsed.tool);
         break;
+      case 'assistant_turn':
+        cb.onAssistantTurn(parsed as TutorTurnPayload);
+        break;
+      case 'progress_update':
+        cb.onProgressUpdate(parsed as { vocabCount: number; mistakeCount: number });
+        break;
       case 'error':
         cb.onError(new Error(parsed.message || 'agent returned error'));
         break;
@@ -224,6 +326,39 @@ function dispatchSseChunk(part: string, cb: StreamCallbacks, markDone: () => voi
  * otherwise the runtime will overwrite chat's cancel_event with stop's cancel_event,
  * causing abort_active_run to fail. The target conversation_id is passed only via body.
  */
+export async function startSession(profile: { language: string; level: string; mode: string }): Promise<{ sessionId: string; profile: { language: string; level: string; mode: string } }> {
+  try {
+    const res = await fetch(API.startSession, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profile),
+    });
+    if (!res.ok) {
+      if (res.status === 404) return createFallbackSession(profile);
+      throw new Error(`HTTP ${res.status}: ${await res.text().catch(() => '')}`);
+    }
+    return res.json() as Promise<{ sessionId: string; profile: { language: string; level: string; mode: string } }>;
+  } catch {
+    return createFallbackSession(profile);
+  }
+}
+
+export async function getSessionSummary(sessionId: string): Promise<TutorSummaryPayload> {
+  try {
+    const res = await fetch(`${API.sessionSummary}?sessionId=${encodeURIComponent(sessionId)}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) {
+      if (res.status === 404) return readStoredSummary(sessionId);
+      throw new Error(`HTTP ${res.status}: ${await res.text().catch(() => '')}`);
+    }
+    return res.json() as Promise<TutorSummaryPayload>;
+  } catch {
+    return readStoredSummary(sessionId);
+  }
+}
+
 export async function stopAgent(conversationId?: string): Promise<boolean> {
   try {
     /**

@@ -77,9 +77,25 @@ export default memo(function ChatBubble({ message }: Props) {
         {isUser ? (
           message.content
         ) : (
-          <div className={`${styles.markdown} ${message.streaming ? styles.markdownStreaming : ''}`}>
-            <Markdown remarkPlugins={[remarkGfm]}>{normalizeMarkdown(message.content)}</Markdown>
-          </div>
+          <>
+            <div className={`${styles.markdown} ${message.streaming ? styles.markdownStreaming : ''}`}>
+              <Markdown remarkPlugins={[remarkGfm]}>{normalizeMarkdown(message.content)}</Markdown>
+            </div>
+            {message.tutorData ? (
+              <div className={styles.tutorLayer}>
+                {message.tutorData.transliteration ? (
+                  <div className={styles.tutorMeta}><strong>Transliteration:</strong> {message.tutorData.transliteration}</div>
+                ) : null}
+                <div className={styles.tutorMeta}><strong>English:</strong> {message.tutorData.translation_en}</div>
+                {message.tutorData.correction ? (
+                  <div className={styles.correctionBox}>
+                    <div><strong>Correction:</strong> {message.tutorData.correction.original} → {message.tutorData.correction.corrected}</div>
+                    <div className={styles.correctionHint}>{message.tutorData.correction.explanation}</div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </>
         )}
         <span className={styles.time}>
           {new Date(message.timestamp).toLocaleTimeString(lang === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
