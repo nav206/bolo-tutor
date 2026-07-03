@@ -29,6 +29,7 @@ function AppInner() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState('');
+  const [conversationId, setConversationId] = useState('');
   const [summary, setSummary] = useState<TutorSummaryPayload>({ vocab: [], mistakes: [] });
   const [progress, setProgress] = useState({ vocabCount: 0, mistakeCount: 0 });
   const [status, setStatus] = useState('Pick a language and begin a short tutor session.');
@@ -51,6 +52,7 @@ function AppInner() {
     try {
       const created = await startSession(profile);
       setSessionId(created.sessionId);
+      setConversationId(crypto.randomUUID());
       setMessages([]);
       setProgress({ vocabCount: 0, mistakeCount: 0 });
       setSummary({ vocab: [], mistakes: [] });
@@ -113,7 +115,7 @@ function AppInner() {
         setLoading(false);
         setStatus('The tutor hit an error.');
       },
-    }, undefined, {
+    }, conversationId, {
       sessionId,
       profile,
     });
@@ -128,7 +130,7 @@ function AppInner() {
     }
     setLoading(false);
     setStatus('The tutor stream was stopped.');
-    void stopAgent();
+    void stopAgent(conversationId);
   }, []);
 
   const handleClear = useCallback(() => {
@@ -136,6 +138,7 @@ function AppInner() {
     setProgress({ vocabCount: 0, mistakeCount: 0 });
     setSummary({ vocab: [], mistakes: [] });
     setSessionId('');
+    setConversationId('');
     setScreen('setup');
     setStatus('Pick a language and begin a short tutor session.');
     setSessionError('');

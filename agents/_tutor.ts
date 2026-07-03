@@ -24,11 +24,16 @@ export interface TutorProfile {
   mode: string;
 }
 
-export function buildTutorInstructions(profile: TutorProfile): string {
+export interface TutorSessionContext {
+  vocab: Array<{ word: string; translation: string }>;
+  mistakes: Array<{ original: string; corrected: string; explanation: string }>;
+}
+
+export function buildTutorInstructions(profile: TutorProfile, sessionContext?: TutorSessionContext): string {
   const language = profile.language || 'Hindi';
   const level = profile.level || 'Beginner';
   const mode = profile.mode || 'Guided';
-  return [
+  const lines: string[] = [
     `You are a warm, direct language tutor for ${language} at ${level} level, in ${mode} mode.`,
     '',
     'Rules:',
@@ -40,22 +45,43 @@ export function buildTutorInstructions(profile: TutorProfile): string {
     '- Ask one short follow-up question or offer one useful correction so the exchange feels alive and adaptive.',
     '- Never fully switch to English unless the user explicitly asks for help or seems lost.',
     '- Always return a JSON object matching the schema exactly, with no extra prose before or after it.',
-    '',
-    'Return this shape exactly:',
-    JSON.stringify({
-      reply_target_language: 'A short reply in the target language.',
-      transliteration: 'Optional transliteration for Hindi/Nepali/Urdu/Bengali, or null for Spanish.',
-      translation_en: 'English translation of the reply.',
-      correction: {
-        original: 'The user phrase with the mistake, or null if no correction is needed.',
-        corrected: 'The corrected version.',
-        explanation: 'A one-line plain-language explanation.',
-      },
-      new_vocab: [
-        { word: 'Example word', translation: 'English meaning', transliteration: 'Optional transliteration' },
-      ],
-    }, null, 2),
-  ].join('\n');
+  ];
+
+  if (sessionContext) {
+    const hasVocab = Array.isArray(sessionContext.vocab) && sessionContext.vocab.length > 0;
+    const hasMistakes = Array.isArray(sessionContext.mistakes) && sessionContext.mistakes.length > 0;
+    if (hasVocab || hasMistakes) {
+      lines.push('');
+      lines.push('Session context (what has already been covered):');
+      if (hasVocab) {
+        const vocabStr = sessionContext.vocab.map(v => `"${v.word} — ${v.translation}"`).join(', ');
+        lines.push(`- Vocab already taught: ${vocabStr}`);
+      }
+      if (hasMistakes) {
+        const mistakesStr = sessionContext.mistakes.map(m => `"${m.original} → ${m.corrected} (${m.explanation})"`).join(', ');
+        lines.push(`- Corrections already made: ${mistakesStr}`);
+      }
+      lines.push('- Do NOT re-teach words or corrections listed above; build on the conversation so far and introduce new material or deepen existing topics.');
+    }
+  }
+
+  lines.push('');
+  lines.push('Return this shape exactly:');
+  lines.push(JSON.stringify({
+    reply_target_language: 'A short reply in the target language.',
+    transliteration: 'Optional transliteration for Hindi/Nepali/Urdu/Bengali, or null for Spanish.',
+    translation_en: 'English translation of the reply.',
+    correction: {
+      original: 'The user phrase with the mistake, or null if no correction is needed.',
+      corrected: 'The corrected version.',
+      explanation: 'A one-line plain-language explanation.',
+    },
+    new_vocab: [
+      { word: 'Example word', translation: 'English meaning', transliteration: 'Optional transliteration' },
+    ],
+  }, null, 2));
+
+  return lines.join('\n');
 }
 
 function extractJsonCandidate(raw: string): string {

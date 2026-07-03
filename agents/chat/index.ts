@@ -116,7 +116,27 @@ export async function onRequest(context: any) {
   );
 
   const profile = await getSessionProfile(context, body as Record<string, unknown>);
-  const agentInstructions = buildTutorInstructions(profile);
+  const sessionId = typeof body.sessionId === 'string' ? body.sessionId : '';
+  let sessionContext: { vocab: Array<{ word: string; translation: string }>; mistakes: Array<{ original: string; corrected: string; explanation: string }> } | undefined;
+  if (sessionId) {
+    try {
+      const [vocabRaw, mistakesRaw] = await Promise.all([
+        context.store.get(`session:${sessionId}:vocab`),
+        context.store.get(`session:${sessionId}:mistakes`),
+      ]);
+      const vocab = vocabRaw ? JSON.parse(vocabRaw) : [];
+      const mistakes = mistakesRaw ? JSON.parse(mistakesRaw) : [];
+      if (Array.isArray(vocab) && vocab.length > 0 || Array.isArray(mistakes) && mistakes.length > 0) {
+        sessionContext = {
+          vocab: Array.isArray(vocab) ? vocab : [],
+          mistakes: Array.isArray(mistakes) ? mistakes : [],
+        };
+      }
+    } catch {
+      // fall back to no session context
+    }
+  }
+  const agentInstructions = buildTutorInstructions(profile, sessionContext);
   const agent = new Agent({
     name: 'TutorAgent',
     instructions: agentInstructions,
@@ -170,7 +190,6 @@ export async function onRequest(context: any) {
 
       yield { event: 'assistant_turn', data: parsedTurn };
 
-      const sessionId = typeof body.sessionId === 'string' ? body.sessionId : '';
       const store = context.store;
       if (sessionId && parsedTurn.correction) {
         await logCorrectionEntry(store, {
