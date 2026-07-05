@@ -51,9 +51,9 @@ export interface StreamCallbacks {
 }
 
 function readStoredSummary(sessionId: string): TutorSummaryPayload {
-  if (typeof window === 'undefined') return { vocab: [], mistakes: [] };
+  if (typeof globalThis.localStorage === 'undefined') return { vocab: [], mistakes: [] };
   try {
-    const raw = window.localStorage.getItem(`bolo-session:${sessionId}:summary`);
+    const raw = globalThis.localStorage.getItem(`bolo-session:${sessionId}:summary`);
     if (!raw) return { vocab: [], mistakes: [] };
     const parsed = JSON.parse(raw) as Partial<TutorSummaryPayload>;
     return {
@@ -66,9 +66,9 @@ function readStoredSummary(sessionId: string): TutorSummaryPayload {
 }
 
 function writeStoredSummary(sessionId: string, summary: TutorSummaryPayload) {
-  if (typeof window === 'undefined') return;
+  if (typeof globalThis.localStorage === 'undefined') return;
   try {
-    window.localStorage.setItem(`bolo-session:${sessionId}:summary`, JSON.stringify(summary));
+    globalThis.localStorage.setItem(`bolo-session:${sessionId}:summary`, JSON.stringify(summary));
   } catch {
     // ignore storage errors in local demo mode
   }
@@ -76,9 +76,9 @@ function writeStoredSummary(sessionId: string, summary: TutorSummaryPayload) {
 
 function createFallbackSession(profile: { language: string; level: string; mode: string }) {
   const sessionId = `local-${Date.now()}`;
-  if (typeof window !== 'undefined') {
+  if (typeof globalThis.localStorage !== 'undefined') {
     try {
-      window.localStorage.setItem(`bolo-session:${sessionId}:profile`, JSON.stringify(profile));
+      globalThis.localStorage.setItem(`bolo-session:${sessionId}:profile`, JSON.stringify(profile));
       writeStoredSummary(sessionId, { vocab: [], mistakes: [] });
     } catch {
       // ignore storage errors in local demo mode
@@ -219,7 +219,7 @@ export function sendMessageStream(
             const delta = chunks[index] + (index < chunks.length - 1 ? ' ' : '');
             callbacks.onTextDelta(delta);
             index += 1;
-            window.setTimeout(step, 25);
+            globalThis.setTimeout(step, 25);
             return;
           }
           callbacks.onAssistantTurn(turn);

@@ -19,9 +19,11 @@ import { createLogger } from '../_logger';
 
 const logger = createLogger('stop');
 
-export async function onRequest(context: any) {
-  const { request } = context;
-  const conversationId = request?.body?.conversation_id as string | undefined;
+export async function onRequest(context: unknown) {
+  const request = (context as { request?: { body?: unknown } }).request;
+  const conversationId = typeof request?.body === 'object' && request.body !== null && 'conversation_id' in request.body && typeof (request.body as Record<string, unknown>).conversation_id === 'string'
+    ? (request.body as Record<string, unknown>).conversation_id
+    : undefined;
 
   logger.log('conversationId:', conversationId);
 

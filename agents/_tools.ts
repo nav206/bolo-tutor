@@ -14,7 +14,7 @@ function buildSessionKey(sessionId: string, suffix: string): string {
   return `session:${sessionId}:${suffix}`;
 }
 
-async function readStoredArray(store: StoreLike, key: string): Promise<any[]> {
+async function readStoredArray(store: StoreLike, key: string): Promise<unknown[]> {
   const raw = await store.get(key);
   if (!raw) return [];
   try {
@@ -31,7 +31,11 @@ export async function logCorrectionEntry(
 ) {
   const mistakesKey = sessionId ? buildSessionKey(sessionId, 'mistakes') : 'session:current:mistakes';
   const existing = await readStoredArray(store, mistakesKey);
-  const repeated = existing.some((entry: any) => entry.topic === topic && entry.corrected === corrected);
+  const repeated = existing.some(entry => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false;
+    const record = entry as Record<string, unknown>;
+    return record.topic === topic && record.corrected === corrected;
+  });
   const entry = { original, corrected, explanation, topic, timestamp: new Date().toISOString(), repeated };
   const next = [...existing, entry];
   await store.set(mistakesKey, JSON.stringify(next));
@@ -59,8 +63,10 @@ const logCorrection = tool({
     topic: z.string(),
     sessionId: z.string().optional(),
   }),
-  execute: async ({ original, corrected, explanation, topic, sessionId }, context: any) => {
-    const store = context?.store ?? context;
+  execute: ({ original, corrected, explanation, topic, sessionId }, context: unknown) => {
+    const store = (context && typeof context === 'object' && 'store' in context && (context as { store?: StoreLike }).store)
+      ? (context as { store: StoreLike }).store
+      : (context as StoreLike);
     return logCorrectionEntry(store, { original, corrected, explanation, topic, sessionId });
   },
 });
@@ -74,8 +80,10 @@ const logVocab = tool({
     transliteration: z.string().nullable().optional(),
     sessionId: z.string().optional(),
   }),
-  execute: async ({ word, translation, transliteration, sessionId }, context: any) => {
-    const store = context?.store ?? context;
+  execute: ({ word, translation, transliteration, sessionId }, context: unknown) => {
+    const store = (context && typeof context === 'object' && 'store' in context && (context as { store?: StoreLike }).store)
+      ? (context as { store: StoreLike }).store
+      : (context as StoreLike);
     return logVocabularyEntry(store, { word, translation, transliteration, sessionId });
   },
 });

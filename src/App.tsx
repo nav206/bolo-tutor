@@ -62,7 +62,7 @@ function AppInner() {
     }
   }, [profile]);
 
-  const handleSend = useCallback(async (text: string) => {
+  const handleSend = useCallback((text: string) => {
     if (!sessionId) {
       setSessionError('Start a session before chatting.');
       return;
@@ -141,16 +141,18 @@ function AppInner() {
     setSessionError('');
   }, []);
 
-  const handleEndSession = useCallback(async () => {
+  const handleEndSession = useCallback(() => {
     if (!sessionId) return;
-    try {
-      const nextSummary = await getSessionSummary(sessionId);
-      setSummary(nextSummary);
-      setScreen('summary');
-      setStatus('Session summary ready.');
-    } catch (error) {
-      setSessionError(error instanceof Error ? error.message : 'Could not load the summary.');
-    }
+    (async () => {
+      try {
+        const nextSummary = await getSessionSummary(sessionId);
+        setSummary(nextSummary);
+        setScreen('summary');
+        setStatus('Session summary ready.');
+      } catch (error) {
+        setSessionError(error instanceof Error ? error.message : 'Could not load the summary.');
+      }
+    })();
   }, [sessionId]);
 
   const progressSummary = useMemo(() => `${progress.vocabCount} vocab · ${progress.mistakeCount} corrections`, [progress]);
